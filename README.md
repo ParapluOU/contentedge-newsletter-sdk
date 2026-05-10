@@ -7,7 +7,7 @@ import { createNewsletterClient } from "@codesocietyou/contentedge-newsletter-sd
 
 const newsletter = createNewsletterClient({
   baseUrl: "https://api.contentedgecms.com",
-  tenant: "gamehearts",
+  tenant: "example",
   formKey: "homepage-newsletter",
 });
 
