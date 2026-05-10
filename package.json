@@ -1,0 +1,34 @@
+{
+  "name": "@codesocietyou/contentedge-newsletter-sdk",
+  "version": "0.1.0",
+  "description": "Framework-agnostic browser SDK for ContentEdge newsletter public forms.",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm,cjs --dts",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "contentedge",
+    "newsletter",
+    "sdk"
+  ],
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "tsup": "latest",
+    "typescript": "latest"
+  }
+}
