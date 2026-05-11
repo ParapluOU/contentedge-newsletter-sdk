@@ -17,9 +17,13 @@
     "dist",
     "README.md"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsup src/index.ts --format esm,cjs --dts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "keywords": [
     "contentedge",
@@ -29,6 +33,7 @@
   "license": "UNLICENSED",
   "devDependencies": {
     "tsup": "latest",
-    "typescript": "latest"
+    "typescript": "latest",
+    "vitest": "^4.1.6"
   }
 }

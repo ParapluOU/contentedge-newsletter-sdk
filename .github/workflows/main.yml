@@ -1,0 +1,53 @@
+name: Release
+
+on:
+  push:
+    branches: [ master ]
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4.4.0
+        with:
+          node-version: '24.13.1'
+          cache: 'npm'
+          registry-url: 'https://registry.npmjs.org'
+      - run: npm ci
+      - name: Clean npm config warnings
+        run: npm config delete always-auth || true
+      - name: Check if this version is already published on npm
+        id: pkg
+        run: |
+          LOCAL_VERSION=$(node -p "require('./package.json').version")
+          if npm view @codesocietyou/contentedge-newsletter-sdk@${LOCAL_VERSION} version >/dev/null 2>&1; then
+            echo "already_published=true" >> $GITHUB_OUTPUT
+          else
+            echo "already_published=false" >> $GITHUB_OUTPUT
+          fi
+      - name: Typecheck
+        if: ${{ steps.pkg.outputs.already_published == 'false' }}
+        run: npm run typecheck
+      - name: Test
+        if: ${{ steps.pkg.outputs.already_published == 'false' }}
+        run: npm test
+      - name: Build
+        if: ${{ steps.pkg.outputs.already_published == 'false' }}
+        run: npm run build
+      - name: Publish to npm
+        if: ${{ steps.pkg.outputs.already_published == 'false' }}
+        env:
+          # NPM_TOKEN must be a granular access token with:
+          # - Write permission for @codesocietyou/contentedge-newsletter-sdk
+          # - "Bypass 2FA" enabled for CI/CD
+          # - Maximum 90-day expiration
+          # Create at: https://www.npmjs.com/settings/~/tokens
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish
