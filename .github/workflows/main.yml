@@ -27,6 +27,11 @@ jobs:
         id: pkg
         run: |
           LOCAL_VERSION=$(node -p "require('./package.json').version")
+          if npm view @codesocietyou/contentedge-newsletter-sdk name >/dev/null 2>&1; then
+            echo "package_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "package_exists=false" >> $GITHUB_OUTPUT
+          fi
           if npm view @codesocietyou/contentedge-newsletter-sdk@${LOCAL_VERSION} version >/dev/null 2>&1; then
             echo "already_published=true" >> $GITHUB_OUTPUT
           else
@@ -43,4 +48,15 @@ jobs:
         run: npm run build
       - name: Publish to npm
         if: ${{ steps.pkg.outputs.already_published == 'false' }}
-        run: npm publish --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          if [ "${{ steps.pkg.outputs.package_exists }}" = "false" ]; then
+            if [ -z "$NODE_AUTH_TOKEN" ]; then
+              echo "::error::First publish must create the npm package with an NPM_TOKEN that can publish under @codesocietyou and bypass 2FA."
+              exit 1
+            fi
+            npm publish --access public
+          else
+            npm publish --provenance
+          fi

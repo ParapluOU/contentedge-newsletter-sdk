@@ -30,3 +30,5 @@ The release workflow publishes from the `master` branch with npm trusted publish
 - Branch: `master`
 
 The `repository.url` field in `package.json` must keep matching the GitHub repository exactly, because npm validates it during trusted publishing.
+
+For the first release only, the workflow creates the npm package with `secrets.NPM_TOKEN` because trusted publishing cannot create a brand-new scoped package. Use an npm automation or granular access token that has permission to publish under `@codesocietyou` and can bypass 2FA for CI/CD. After `0.1.0` exists on npm, later releases use trusted publishing with provenance.
