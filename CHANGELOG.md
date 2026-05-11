@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.2
+
+- Expand the public README with installation, quick start, API reference, error handling, and support guidance.
+
 ## 0.1.1
 
 - Add MIT license metadata and license file.
