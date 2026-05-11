@@ -43,11 +43,4 @@ jobs:
         run: npm run build
       - name: Publish to npm
         if: ${{ steps.pkg.outputs.already_published == 'false' }}
-        env:
-          # NPM_TOKEN must be a granular access token with:
-          # - Write permission for @codesocietyou/contentedge-newsletter-sdk
-          # - "Bypass 2FA" enabled for CI/CD
-          # - Maximum 90-day expiration
-          # Create at: https://www.npmjs.com/settings/~/tokens
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish
+        run: npm publish --provenance

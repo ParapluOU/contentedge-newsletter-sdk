@@ -20,3 +20,11 @@ await newsletter.subscribe({
 ```
 
 The SDK never accepts API keys, list IDs, template IDs, sender identities, or arbitrary recipients. Those are resolved server-side through the configured ContentEdge public form.
+
+## Publishing
+
+The release workflow publishes from the `master` branch with npm trusted publishing and provenance enabled. Before the first release, configure the npm package trusted publisher for:
+
+- Repository: `ParapluOU/contentedge-newsletter-sdk`
+- Workflow: `.github/workflows/main.yml`
+- Branch: `master`
