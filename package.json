@@ -30,6 +30,10 @@
     "newsletter",
     "sdk"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ParapluOU/contentedge-newsletter-sdk.git"
+  },
   "license": "UNLICENSED",
   "devDependencies": {
     "tsup": "latest",
