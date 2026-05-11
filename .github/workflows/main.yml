@@ -46,17 +46,11 @@ jobs:
       - name: Build
         if: ${{ steps.pkg.outputs.already_published == 'false' }}
         run: npm run build
-      - name: Publish to npm
-        if: ${{ steps.pkg.outputs.already_published == 'false' }}
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Require manual first publish
+        if: ${{ steps.pkg.outputs.already_published == 'false' && steps.pkg.outputs.package_exists == 'false' }}
         run: |
-          if [ "${{ steps.pkg.outputs.package_exists }}" = "false" ]; then
-            if [ -z "$NODE_AUTH_TOKEN" ]; then
-              echo "::error::First publish must create the npm package with an NPM_TOKEN that can publish under @codesocietyou and bypass 2FA."
-              exit 1
-            fi
-            npm publish --access public
-          else
-            npm publish --provenance
-          fi
+          echo "::error::Create the initial npm package version manually before running the automated release workflow."
+          exit 1
+      - name: Publish to npm
+        if: ${{ steps.pkg.outputs.already_published == 'false' && steps.pkg.outputs.package_exists == 'true' }}
+        run: npm publish --provenance
