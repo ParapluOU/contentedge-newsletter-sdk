@@ -34,7 +34,7 @@
     "type": "git",
     "url": "git+https://github.com/ParapluOU/contentedge-newsletter-sdk.git"
   },
-  "license": "UNLICENSED",
+  "license": "MIT",
   "devDependencies": {
     "tsup": "latest",
     "typescript": "latest",
