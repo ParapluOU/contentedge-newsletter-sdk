@@ -28,3 +28,5 @@ The release workflow publishes from the `master` branch with npm trusted publish
 - Repository: `ParapluOU/contentedge-newsletter-sdk`
 - Workflow: `.github/workflows/main.yml`
 - Branch: `master`
+
+The `repository.url` field in `package.json` must keep matching the GitHub repository exactly, because npm validates it during trusted publishing.
