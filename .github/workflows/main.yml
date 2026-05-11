@@ -5,9 +5,8 @@ on:
     branches: [ master ]
 
 permissions:
-  contents: write
-  pull-requests: write
   id-token: write
+  contents: read
 
 jobs:
   release:
@@ -24,12 +23,6 @@ jobs:
       - run: npm ci
       - name: Clean npm config warnings
         run: npm config delete always-auth || true
-      - name: Check for pending changesets
-        id: cs
-        run: |
-          COUNT=$(find .changeset -maxdepth 1 -type f -name '*.md' ! -name 'README.md' 2>/dev/null | wc -l | tr -d '[:space:]' || true)
-          if [ -z "$COUNT" ]; then COUNT=0; fi
-          echo "count=${COUNT}" >> $GITHUB_OUTPUT
       - name: Check if this version is already published on npm
         id: pkg
         run: |
@@ -39,31 +32,22 @@ jobs:
           else
             echo "already_published=false" >> $GITHUB_OUTPUT
           fi
-      - name: Apply versions from changesets
-        run: |
-          if [ "${{ steps.cs.outputs.count }}" = "0" ]; then
-            echo "No changesets to version. Skipping."
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          npm run version:apply
-          git add -A
-          git commit -m "Version Packages [skip ci]"
-          git fetch origin "${GITHUB_REF_NAME}"
-          git pull --rebase origin "${GITHUB_REF_NAME}"
-          git push origin HEAD:${GITHUB_REF_NAME}
+      - name: Typecheck
+        if: ${{ steps.pkg.outputs.already_published == 'false' }}
+        run: npm run typecheck
+      - name: Test
+        if: ${{ steps.pkg.outputs.already_published == 'false' }}
+        run: npm test
       - name: Build
-        if: ${{ steps.cs.outputs.count != '0' || steps.pkg.outputs.already_published == 'false' }}
+        if: ${{ steps.pkg.outputs.already_published == 'false' }}
         run: npm run build
       - name: Publish to npm
-        if: ${{ steps.cs.outputs.count != '0' || steps.pkg.outputs.already_published == 'false' }}
+        if: ${{ steps.pkg.outputs.already_published == 'false' }}
         env:
           # NPM_TOKEN must be a granular access token with:
-          # - Write permission for @codesocietyou/contentedge-cms-sdk
+          # - Write permission for @codesocietyou/contentedge-newsletter-sdk
           # - "Bypass 2FA" enabled for CI/CD
           # - Maximum 90-day expiration
           # Create at: https://www.npmjs.com/settings/~/tokens
-          # Alternative: Use OIDC trusted publishing (see README)
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm run release
+        run: npm publish
