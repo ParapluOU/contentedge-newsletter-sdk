@@ -88,7 +88,7 @@ Create a client bound to a ContentEdge public newsletter form.
 ```typescript
 interface NewsletterClientConfig {
   baseUrl: string;   // ContentEdge API base URL
-  tenant: string;    // Tenant identifier used by the public API
+  tenant: string;    // Tenant domain used by the public API
   formKey: string;   // Public newsletter form key
   fetch?: typeof fetch;
 }
@@ -114,7 +114,7 @@ Returns:
 
 ```typescript
 interface PublicNewsletterResponse {
-  status: string;
+  status: "ACCEPTED" | "SUBSCRIBED" | "UNSUBSCRIBED" | "RECEIVED";
   message: string;
 }
 ```
@@ -207,9 +207,13 @@ const newsletter = createNewsletterClient({
 });
 ```
 
+### Browser origins and server-side usage
+
+ContentEdge validates the browser `Origin` header against the public form's allowed origins when origins are configured. Browsers set this header automatically; server-side runtimes often do not. If you use the SDK from SSR, Node.js, tests, or another backend process, provide a custom `fetch` that sends an allowed `Origin` header or configure the form accordingly.
+
 ## Public Form Usage
 
-Applications provide the configured `tenant`, `formKey`, and public form data. The same client API can be used from React, Vue, Svelte, static sites, or plain TypeScript applications.
+Applications provide the configured tenant domain, `formKey`, and public form data. The same client API can be used from React, Vue, Svelte, static sites, or plain TypeScript applications.
 
 ## Versioning
 
