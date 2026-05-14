@@ -37,8 +37,8 @@ function createClient(fetcher: NonNullable<NewsletterClientConfig["fetch"]>) {
 describe("createNewsletterClient", () => {
   it("submits subscriptions to the tenant form endpoint", async () => {
     const { calls, fetcher } = createJsonFetch({
-      status: "OK",
-      data: { status: "ACCEPTED", message: "Confirmation email queued." },
+      status: "SUCCESS",
+      data: { status: "ACCEPTED", message: "If this email can be subscribed, a confirmation email will be sent." },
     });
 
     const response = await createClient(fetcher).subscribe({
@@ -49,7 +49,7 @@ describe("createNewsletterClient", () => {
       honeypot: "",
     });
 
-    expect(response).toEqual({ status: "ACCEPTED", message: "Confirmation email queued." });
+    expect(response).toEqual({ status: "ACCEPTED", message: "If this email can be subscribed, a confirmation email will be sent." });
     expect(calls).toHaveLength(1);
     expect(calls[0]).toMatchObject({
       url: "https://api.contentedgecms.com/api/public/newsletter/tenants/game%20hearts/forms/homepage%2Fnewsletter/subscriptions",
@@ -69,8 +69,8 @@ describe("createNewsletterClient", () => {
 
   it("submits enquiries without exposing recipients or templates", async () => {
     const { calls, fetcher } = createJsonFetch({
-      status: "OK",
-      data: { status: "ACCEPTED", message: "Enquiry accepted." },
+      status: "SUCCESS",
+      data: { status: "RECEIVED", message: "Enquiry received" },
     });
 
     await createClient(fetcher).submitEnquiry({
@@ -98,8 +98,8 @@ describe("createNewsletterClient", () => {
 
   it("posts confirmation and unsubscribe tokens to token endpoints", async () => {
     const { calls, fetcher } = createJsonFetch({
-      status: "OK",
-      data: { status: "ACCEPTED", message: "Token accepted." },
+      status: "SUCCESS",
+      data: { status: "SUBSCRIBED", message: "Subscription confirmed" },
     });
     const client = createClient(fetcher);
 
@@ -108,11 +108,11 @@ describe("createNewsletterClient", () => {
 
     expect(calls.map((call) => ({ url: call.url, body: call.init?.body }))).toEqual([
       {
-        url: "https://api.contentedgecms.com/api/public/newsletter/subscriptions/confirm",
+        url: "https://api.contentedgecms.com/api/public/newsletter/tenants/game%20hearts/subscriptions/confirm",
         body: JSON.stringify({ token: "confirm-token" }),
       },
       {
-        url: "https://api.contentedgecms.com/api/public/newsletter/subscriptions/unsubscribe",
+        url: "https://api.contentedgecms.com/api/public/newsletter/tenants/game%20hearts/subscriptions/unsubscribe",
         body: JSON.stringify({ token: "unsubscribe-token" }),
       },
     ]);
@@ -138,8 +138,25 @@ describe("createNewsletterClient", () => {
     });
   });
 
+  it("uses ProblemDetail messages when Spring returns a non-ApiResponse error", async () => {
+    const { fetcher } = createJsonFetch(
+      {
+        title: "Bad Request",
+        detail: "Unknown tenant",
+        status: 400,
+      } as unknown as ContentEdgeApiResponse<PublicNewsletterResponse>,
+      { status: 400 }
+    );
+
+    await expect(createClient(fetcher).unsubscribe("token")).rejects.toMatchObject({
+      name: "ContentEdgeNewsletterError",
+      message: "Unknown tenant",
+      status: 400,
+    });
+  });
+
   it("throws ContentEdgeNewsletterError when a successful response has no data", async () => {
-    const { fetcher } = createJsonFetch({ status: "OK" });
+    const { fetcher } = createJsonFetch({ status: "SUCCESS" });
 
     await expect(createClient(fetcher).unsubscribe("unsubscribe-token")).rejects.toBeInstanceOf(
       ContentEdgeNewsletterError

@@ -1,6 +1,6 @@
 {
   "name": "@codesocietyou/contentedge-newsletter-sdk",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Framework-agnostic browser SDK for ContentEdge newsletter public forms.",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -37,8 +37,8 @@
   },
   "license": "MIT",
   "devDependencies": {
-    "tsup": "latest",
-    "typescript": "latest",
+    "tsup": "^8.5.1",
+    "typescript": "6.0.3",
     "vitest": "^4.1.6"
   }
 }

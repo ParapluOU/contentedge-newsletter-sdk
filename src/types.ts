@@ -1,5 +1,6 @@
 export interface NewsletterClientConfig {
   baseUrl: string;
+  /** Tenant domain used by ContentEdge public newsletter routes. */
   tenant: string;
   formKey: string;
   fetch?: typeof fetch;
@@ -22,12 +23,18 @@ export interface EnquiryRequest {
 }
 
 export interface PublicNewsletterResponse {
-  status: string;
+  status: "ACCEPTED" | "SUBSCRIBED" | "UNSUBSCRIBED" | "RECEIVED";
   message: string;
 }
 
 export interface ContentEdgeApiResponse<T> {
-  status: string;
+  status: "SUCCESS" | "ERROR";
   message?: string;
   data?: T;
+}
+
+export interface ProblemDetailResponse {
+  title?: string;
+  detail?: string;
+  status?: number;
 }
