@@ -4,6 +4,28 @@ export interface NewsletterClientConfig {
   tenant: string;
   formKey: string;
   fetch?: typeof fetch;
+  /** Aborts any request that takes longer than this many milliseconds. */
+  timeoutMs?: number;
+}
+
+export interface RequestOptions {
+  signal?: AbortSignal;
+}
+
+export type PublicFormPurpose = "SUBSCRIPTION" | "ENQUIRY" | "SUBSCRIPTION_AND_ENQUIRY";
+
+/**
+ * Browser-safe form configuration. ContentEdge never exposes target lists, templates,
+ * sender identities, enquiry recipients, or allowed origins to public clients.
+ */
+export interface PublicFormConfig {
+  formKey: string;
+  purpose: PublicFormPurpose;
+  consentText?: string;
+  consentRequired: boolean;
+  captchaRequired: boolean;
+  doubleOptInRequired: boolean;
+  allowedFields: string[];
 }
 
 export interface SubscribeRequest {

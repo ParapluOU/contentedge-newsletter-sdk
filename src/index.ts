@@ -4,6 +4,9 @@ export { ContentEdgeNewsletterError } from "./errors";
 export type {
   EnquiryRequest,
   NewsletterClientConfig,
+  PublicFormConfig,
+  PublicFormPurpose,
   PublicNewsletterResponse,
+  RequestOptions,
   SubscribeRequest,
 } from "./types";
