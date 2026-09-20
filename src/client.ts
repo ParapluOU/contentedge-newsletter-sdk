@@ -4,7 +4,9 @@ import type {
   EnquiryRequest,
   NewsletterClientConfig,
   ProblemDetailResponse,
+  PublicFormConfig,
   PublicNewsletterResponse,
+  RequestOptions,
   SubscribeRequest,
 } from "./types";
 
@@ -12,13 +14,35 @@ export function createNewsletterClient(config: NewsletterClientConfig) {
   const baseUrl = config.baseUrl.replace(/\/$/, "");
   const fetcher = config.fetch ?? fetch;
   const tenantPath = `/api/public/newsletter/tenants/${encodeURIComponent(config.tenant)}`;
+  const formPath = `${tenantPath}/forms/${encodeURIComponent(config.formKey)}`;
 
-  async function post<T>(path: string, body: unknown): Promise<T> {
-    const response = await fetcher(`${baseUrl}${path}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
+  function abortSignal(options?: RequestOptions): AbortSignal | undefined {
+    const signals: AbortSignal[] = [];
+    if (options?.signal) {
+      signals.push(options.signal);
+    }
+    if (config.timeoutMs !== undefined && config.timeoutMs > 0) {
+      signals.push(AbortSignal.timeout(config.timeoutMs));
+    }
+    if (signals.length === 0) {
+      return undefined;
+    }
+    return signals.length === 1 ? signals[0] : AbortSignal.any(signals);
+  }
+
+  async function request<T>(
+    method: string,
+    path: string,
+    body?: unknown,
+    options?: RequestOptions
+  ): Promise<T> {
+    const init: RequestInit = { method, signal: abortSignal(options) };
+    if (body !== undefined) {
+      init.headers = { "Content-Type": "application/json" };
+      init.body = JSON.stringify(body);
+    }
+
+    const response = await fetcher(`${baseUrl}${path}`, init);
 
     let payload: ContentEdgeApiResponse<T> | ProblemDetailResponse | undefined;
     try {
@@ -43,26 +67,24 @@ export function createNewsletterClient(config: NewsletterClientConfig) {
   }
 
   return {
-    subscribe(request: SubscribeRequest): Promise<PublicNewsletterResponse> {
-      return post(
-        `${tenantPath}/forms/${encodeURIComponent(config.formKey)}/subscriptions`,
-        request
-      );
+    getFormConfig(options?: RequestOptions): Promise<PublicFormConfig> {
+      return request("GET", formPath, undefined, options);
     },
 
-    submitEnquiry(request: EnquiryRequest): Promise<PublicNewsletterResponse> {
-      return post(
-        `${tenantPath}/forms/${encodeURIComponent(config.formKey)}/enquiries`,
-        request
-      );
+    subscribe(body: SubscribeRequest, options?: RequestOptions): Promise<PublicNewsletterResponse> {
+      return request("POST", `${formPath}/subscriptions`, body, options);
     },
 
-    confirm(token: string): Promise<PublicNewsletterResponse> {
-      return post(`${tenantPath}/subscriptions/confirm`, { token });
+    submitEnquiry(body: EnquiryRequest, options?: RequestOptions): Promise<PublicNewsletterResponse> {
+      return request("POST", `${formPath}/enquiries`, body, options);
     },
 
-    unsubscribe(token: string): Promise<PublicNewsletterResponse> {
-      return post(`${tenantPath}/subscriptions/unsubscribe`, { token });
+    confirm(token: string, options?: RequestOptions): Promise<PublicNewsletterResponse> {
+      return request("POST", `${tenantPath}/subscriptions/confirm`, { token }, options);
+    },
+
+    unsubscribe(token: string, options?: RequestOptions): Promise<PublicNewsletterResponse> {
+      return request("POST", `${tenantPath}/subscriptions/unsubscribe`, { token }, options);
     },
   };
 }

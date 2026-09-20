@@ -1,15 +1,25 @@
 import { describe, expect, it, vi } from "vitest";
 import { createNewsletterClient } from "./client";
 import { ContentEdgeNewsletterError } from "./errors";
-import type { ContentEdgeApiResponse, NewsletterClientConfig, PublicNewsletterResponse } from "./types";
+import type {
+  ContentEdgeApiResponse,
+  NewsletterClientConfig,
+  PublicFormConfig,
+  PublicNewsletterResponse,
+} from "./types";
 
 type FetchCall = {
   url: string;
   init?: RequestInit;
 };
 
-function createJsonFetch(
-  payload: ContentEdgeApiResponse<PublicNewsletterResponse>,
+const hangingFetch: NonNullable<NewsletterClientConfig["fetch"]> = (_input, init) =>
+  new Promise((_resolve, reject) => {
+    init?.signal?.addEventListener("abort", () => reject(init.signal?.reason));
+  });
+
+function createJsonFetch<T = PublicNewsletterResponse>(
+  payload: ContentEdgeApiResponse<T>,
   responseInit: ResponseInit = { status: 200 }
 ) {
   const calls: FetchCall[] = [];
@@ -32,6 +42,10 @@ function createClient(fetcher: NonNullable<NewsletterClientConfig["fetch"]>) {
     formKey: "homepage/newsletter",
     fetch: fetcher,
   });
+}
+
+function parsedBody(call: FetchCall) {
+  return JSON.parse(String(call.init?.body)) as Record<string, unknown>;
 }
 
 describe("createNewsletterClient", () => {
@@ -96,6 +110,57 @@ describe("createNewsletterClient", () => {
     });
   });
 
+  it("keeps admin-owned form configuration out of public request bodies", async () => {
+    const { calls, fetcher } = createJsonFetch({
+      status: "SUCCESS",
+      data: { status: "ACCEPTED", message: "Accepted" },
+    });
+    const client = createClient(fetcher);
+
+    await client.subscribe({
+      email: "reader@example.com",
+      attributes: { source: "homepage" },
+      consent: true,
+    });
+    await client.submitEnquiry({
+      fields: {
+        email: "reader@example.com",
+        message: "Hello",
+      },
+    });
+
+    const forbiddenPublicFields = [
+      "purpose",
+      "targetListId",
+      "listId",
+      "listName",
+      "senderIdentityId",
+      "confirmationTemplateId",
+      "enquiryTemplateId",
+      "enquiryRecipients",
+      "recipients",
+    ];
+
+    expect(calls.map(parsedBody)).toEqual([
+      {
+        email: "reader@example.com",
+        attributes: { source: "homepage" },
+        consent: true,
+      },
+      {
+        fields: {
+          email: "reader@example.com",
+          message: "Hello",
+        },
+      },
+    ]);
+    for (const body of calls.map(parsedBody)) {
+      for (const field of forbiddenPublicFields) {
+        expect(body).not.toHaveProperty(field);
+      }
+    }
+  });
+
   it("posts confirmation and unsubscribe tokens to token endpoints", async () => {
     const { calls, fetcher } = createJsonFetch({
       status: "SUCCESS",
@@ -153,6 +218,73 @@ describe("createNewsletterClient", () => {
       message: "Unknown tenant",
       status: 400,
     });
+  });
+
+  it("reads public form configuration without sending a request body", async () => {
+    const { calls, fetcher } = createJsonFetch<PublicFormConfig>({
+      status: "SUCCESS",
+      data: {
+        formKey: "homepage/newsletter",
+        purpose: "SUBSCRIPTION",
+        consentText: "I agree",
+        consentRequired: true,
+        captchaRequired: false,
+        doubleOptInRequired: true,
+        allowedFields: ["source"],
+      },
+    });
+
+    const config = await createClient(fetcher).getFormConfig();
+
+    expect(config).toEqual({
+      formKey: "homepage/newsletter",
+      purpose: "SUBSCRIPTION",
+      consentText: "I agree",
+      consentRequired: true,
+      captchaRequired: false,
+      doubleOptInRequired: true,
+      allowedFields: ["source"],
+    });
+    expect(calls).toHaveLength(1);
+    expect(calls[0].url).toBe(
+      "https://api.contentedgecms.com/api/public/newsletter/tenants/game%20hearts/forms/homepage%2Fnewsletter"
+    );
+    expect(calls[0].init?.method).toBe("GET");
+    expect(calls[0].init?.body).toBeUndefined();
+    expect(calls[0].init?.headers).toBeUndefined();
+  });
+
+  it("forwards a caller supplied abort signal to fetch", async () => {
+    const controller = new AbortController();
+    const client = createClient(hangingFetch);
+
+    const pending = client.subscribe({ email: "reader@example.com", consent: true }, { signal: controller.signal });
+    controller.abort();
+
+    await expect(pending).rejects.toBeDefined();
+  });
+
+  it("aborts the request when the configured timeout elapses", async () => {
+    const client = createNewsletterClient({
+      baseUrl: "https://api.contentedgecms.com",
+      tenant: "game hearts",
+      formKey: "homepage/newsletter",
+      fetch: hangingFetch,
+      timeoutMs: 5,
+    });
+
+    await expect(client.getFormConfig()).rejects.toMatchObject({ name: "TimeoutError" });
+  });
+
+  it("leaves the signal unset when no timeout or caller signal is supplied", async () => {
+    const { calls, fetcher } = createJsonFetch({
+      status: "SUCCESS",
+      data: { status: "ACCEPTED", message: "Accepted" },
+    });
+
+    await createClient(fetcher).subscribe({ email: "reader@example.com", consent: true });
+
+    expect(calls[0].init?.signal).toBeUndefined();
   });
 
   it("throws ContentEdgeNewsletterError when a successful response has no data", async () => {
