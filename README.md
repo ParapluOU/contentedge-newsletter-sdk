@@ -97,6 +97,8 @@ await newsletter.submitEnquiry({
 
 ContentEdge already hosts landing pages for both links at `/confirm-subscription` and `/unsubscribe` on the tenant domain, and the confirmation and unsubscribe emails point there by default. You only need these methods when you host your own landing pages.
 
+Campaign emails also carry a one-click `List-Unsubscribe` header, so the Unsubscribe button that Gmail, Yahoo and other inboxes show next to the sender unsubscribes the reader in ContentEdge directly. Mailbox providers call that endpoint themselves: the SDK doesn't use it and you don't need to handle it.
+
 ```typescript
 await newsletter.confirm("confirmation-token");
 await newsletter.unsubscribe("unsubscribe-token");
@@ -303,7 +305,7 @@ When both are present the request aborts on whichever fires first.
 
 ### Browser origins and server-side usage
 
-ContentEdge validates the browser `Origin` header against the public form's allowed origins on **every** public request, including `getFormConfig`. Allowed origins are required: a form with none configured rejects all public traffic, and ContentEdge disables such forms so the misconfiguration is visible to administrators instead of failing silently.
+ContentEdge validates the browser `Origin` header against the public form's allowed origins on **every** public request, including `getFormConfig`. (The one exception is the one-click unsubscribe endpoint behind the inbox Unsubscribe button, which mailbox providers call from their own servers without an `Origin` header. The SDK never calls it.) Allowed origins are required: a form with none configured rejects all public traffic, and ContentEdge disables such forms so the misconfiguration is visible to administrators instead of failing silently.
 
 Browsers set `Origin` automatically. Server-side runtimes usually do not, so SSR, Node.js, integration tests, and backend-to-backend usage **must** supply a custom `fetch` that adds an allowed `Origin` header:
 
