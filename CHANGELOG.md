@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Document the one-click `List-Unsubscribe` header on ContentEdge campaign emails: the inbox Unsubscribe button now unsubscribes the reader in ContentEdge directly. No SDK code changes; `unsubscribe(token)` is unchanged.
+- Note that the one-click unsubscribe endpoint, which mailbox providers call, is the one exception to the `Origin` check.
+
 ## 0.2.0
 
 - Add `getFormConfig` for reading the browser-safe configuration of a public form: purpose, consent text and whether consent is mandatory, captcha requirement, double opt-in requirement, and allowed field keys. Admin-owned settings such as target lists, templates, sender identities, enquiry recipients, and allowed origins are never exposed.
